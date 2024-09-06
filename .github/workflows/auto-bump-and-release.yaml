@@ -53,4 +53,5 @@ jobs:
           make_latest: true
 
   build-push-docker:
+    needs: auto-bump-and-release
     uses: ./.github/workflows/build-push-docker.yaml
