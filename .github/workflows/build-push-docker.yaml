@@ -1,10 +1,10 @@
 name: Build and Push Docker Image
 
 on:
-  release:
+  workflow_run:
+    workflows: [Release]
     types:
-      - created
-      - published
+      - completed
 
   push:
     tags:
