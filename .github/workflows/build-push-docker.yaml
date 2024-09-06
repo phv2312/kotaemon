@@ -10,6 +10,7 @@ on:
     inputs:
       new_tag:
         required: true
+        type: string
 
 env:
   REGISTRY: ghcr.io
