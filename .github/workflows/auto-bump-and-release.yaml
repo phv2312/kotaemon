@@ -49,13 +49,13 @@ jobs:
         with:
           files: kotaemon-app.zip
           fail_on_unmatched_files: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_WRITE_TOKEN }}
           generate_release_notes: true
           tag_name: ${{ steps.update-version.outputs.new_tag }}
           make_latest: true
-
-  build-push-docker:
-    needs: auto-bump-and-release
-    uses: ./.github/workflows/build-push-docker.yaml
-    with:
-      new_tag: ${{ needs.auto-bump-and-release.outputs.new_tag }}
+#
+#  build-push-docker:
+#    needs: auto-bump-and-release
+#    uses: ./.github/workflows/build-push-docker.yaml
+#    with:
+#      new_tag: ${{ needs.auto-bump-and-release.outputs.new_tag }}
