@@ -8,6 +8,8 @@ on:
 jobs:
   auto-bump-and-release:
     runs-on: ubuntu-latest
+    outputs:
+      new_tag: ${{ steps.update-version.outputs.new_tag }}
     steps:
       - name: Clone the repo
         uses: actions/checkout@v4
@@ -55,3 +57,5 @@ jobs:
   build-push-docker:
     needs: auto-bump-and-release
     uses: ./.github/workflows/build-push-docker.yaml
+    with:
+      new_tag: ${{ needs.auto-bump-and-release.outputs.new_tag }}

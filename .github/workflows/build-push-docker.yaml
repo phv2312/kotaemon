@@ -7,6 +7,9 @@ on:
 
   workflow_dispatch:
   workflow_call:
+    inputs:
+      new_tag:
+        required: true
 
 env:
   REGISTRY: ghcr.io
@@ -30,7 +33,7 @@ jobs:
 
       - name: Set repository and image name
         run: |
-          echo "FULL_IMAGE_NAME=${{ env.REGISTRY }}/${IMAGE_NAME,,}" >>${GITHUB_ENV}
+          echo "FULL_IMAGE_NAME=${{ env.REGISTRY }}/${IMAGE_NAME,,}:${{ inputs.new_tag }}" >>${GITHUB_ENV}
         env:
           IMAGE_NAME: "${{ github.repository }}"
 
