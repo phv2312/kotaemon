@@ -26,6 +26,8 @@ jobs:
         platform:
           - linux/amd64
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Update Application Version
         id: update-version
         uses: anothrNick/github-tag-action@v1
@@ -44,9 +46,6 @@ jobs:
         env:
           IMAGE_NAME: "${{ github.repository }}"
 
-#      - name: Checkout
-#        uses: actions/checkout@v4
-#
 #      - name: Set up Docker Buildx
 #        id: buildx
 #        uses: docker/setup-buildx-action@v2
