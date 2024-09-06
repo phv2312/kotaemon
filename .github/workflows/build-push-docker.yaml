@@ -47,8 +47,6 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.FULL_IMAGE_NAME }}
-          tags: |
-            type=semver,pattern={{version}}  # Generates tags based on the version only
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
