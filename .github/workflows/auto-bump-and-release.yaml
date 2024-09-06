@@ -52,4 +52,4 @@ jobs:
           tag_name: ${{ steps.update-version.outputs.new_tag }}
           make_latest: true
       - name: Build push Docker
-        uses: ./.github/workflows/build-push-docker.yml
+        uses: ./.github/workflows/build-push-docker.yaml
