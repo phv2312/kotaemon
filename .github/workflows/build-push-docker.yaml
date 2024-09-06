@@ -1,14 +1,11 @@
 name: Build and Push Docker Image
 
 on:
-  workflow_run:
-    workflows: [Auto Bump and Release]
-    types:
-      - completed
-
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
+    branches:
+      - 'releases/**'
 
   workflow_dispatch:
 
