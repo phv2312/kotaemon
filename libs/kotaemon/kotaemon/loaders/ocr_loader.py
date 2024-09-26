@@ -193,7 +193,7 @@ class ImageReader(BaseReader):
         return result
 
 if __name__ == '__main__':
-    file_path = "/home/kan/projects/nlp/kotaemon/00167_Mizuho.png"
+    file_path = "test.jpg"
 
     with open(file_path, "rb") as content:
         files = {"file": content}
@@ -201,3 +201,5 @@ if __name__ == '__main__':
         resp = requests.post(url="http://127.0.0.1:8881/ai/infer/", files=files, data=data,)
         resp.raise_for_status()
 
+    print("Success")
+    print(resp.json())
