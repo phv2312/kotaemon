@@ -21,6 +21,8 @@ from kotaemon.loaders import (
     PDFThumbnailReader,
     TxtReader,
     UnstructuredReader, ImageReader,
+    UnstructuredReader,
+    ImageReader
 )
 
 unstructured = UnstructuredReader()
