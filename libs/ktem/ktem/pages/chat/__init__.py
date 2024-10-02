@@ -7,6 +7,8 @@ from typing import Optional
 
 import gradio as gr
 from filelock import FileLock
+
+from kotaemon.indices.ingests.extension_manager import extension_manager
 from ktem.app import BasePage
 from ktem.components import reasonings
 from ktem.db.models import Conversation, engine
@@ -19,7 +21,7 @@ from sqlmodel import Session, select
 from theflow.settings import settings as flowsettings
 
 from kotaemon.base import Document
-from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
+# from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
 
 from .chat_panel import ChatPanel
 from .chat_suggestion import ChatSuggestion
@@ -101,7 +103,8 @@ class ChatPage(BasePage):
                 if len(self._app.index_manager.indices) > 0:
                     with gr.Accordion(label="Quick Upload") as _:
                         self.quick_file_upload = File(
-                            file_types=list(KH_DEFAULT_FILE_EXTRACTORS.keys()),
+                            # file_types=list(KH_DEFAULT_FILE_EXTRACTORS.keys()),
+                            file_types=extension_manager.get_supported_extensions(),
                             file_count="multiple",
                             container=True,
                             show_label=False,
