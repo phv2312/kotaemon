@@ -1,0 +1,86 @@
+collection_name: &collection_name "default"
+collection_idx: &collection_idx "1"
+collection_private: &collection_private false
+user_id: &user_id "1"
+
+embedding_model: &embedding_model "cohere"
+
+retriever_settings: &retriever_settings
+  use_reranking: false
+  prioritize_table: false
+  num_retrieval: 5
+  mmr: false
+  retrieval_mode: "hybrid"
+
+indexer_settings: &indexer_settings
+  embedding: *embedding_model
+
+components:
+  - name: document_store
+    type: "lancedb"
+    container: "DocumentStore"
+    params:
+      collection_name: *collection_name
+
+  - name: vector_store
+    type: "chroma"
+    container: "VectorStore"
+    params:
+      collection_name: *collection_name
+
+  - name: source
+    type: "Source"
+    container: "FileSchema"
+    params:
+      collection_idx: *collection_idx
+      private: *collection_private
+
+  - name: index
+    type: "Index"
+    container: "FileSchema"
+    params:
+      collection_idx: *collection_idx
+
+  - name: retriever
+    type: "default"
+    container: "Retriever"
+    params:
+      source: source
+      index: index
+      vectorstore: vector_store
+      documentstore: document_store
+      user_settings: *retriever_settings
+      index_settings: *indexer_settings
+      collection_idx: *collection_idx
+      user_id: *user_id
+
+  - name: graphrag_retriever
+    type: "graphrag"
+    container: "Retriever"
+    params:
+      collection_idx: *collection_idx
+      user_id: *user_id
+
+  - name: indexer
+    type: "default"
+    container: "Indexer"
+    params:
+      source: source
+      index: index
+      vectorstore: vector_store
+      documentstore: document_store
+      index_settings: *indexer_settings
+      collection_idx: *collection_idx
+      user_id: *user_id
+      private: *collection_private
+
+  - name: graphrag_indexer
+    type: "graphrag"
+    container: "Indexer"
+    params:
+      source: Source
+      index: Index
+      documentstore: document_store
+      collection_idx: *collection_idx
+      user_id: *user_id
+      private: *collection_private

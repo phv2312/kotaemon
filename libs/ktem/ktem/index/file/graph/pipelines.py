@@ -175,12 +175,16 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
             }
         }
 
-    def _build_graph_search(self):
+    def _build_graph_search(self, file_ids: list[str]):
         assert (
-            len(self.file_ids) <= 1
+            len(file_ids)
+            <= 1
+            # len(self.file_ids) <= 1
         ), "GraphRAG retriever only supports one file_id at a time"
 
-        file_id = self.file_ids[0]
+        # file_id = self.file_ids[0]
+        file_id = file_ids[0]
+
         # retrieve the graph_id from the index
         with Session(engine) as session:
             graph_id = (
@@ -341,12 +345,17 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
         return documents
 
     def run(
-        self,
-        text: str,
+        self, text: str, file_ids: list[str] | None = None
     ) -> list[RetrievedDocument]:
-        if not self.file_ids:
+        file_ids = file_ids or self.file_ids
+
+        # if not self.file_ids:
+        #     return []
+
+        if not file_ids:
             return []
-        context_builder = self._build_graph_search()
+
+        context_builder = self._build_graph_search(file_ids)
 
         local_context_params = {
             "text_unit_prop": 0.5,
