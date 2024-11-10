@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools >= 61.0", "wheel", "setuptools-git-versioning>=2.0,<3"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = true
+packages.find.exclude = ["tests*", "env*"]
+packages.find.include = ["backend*"]
+
+[tool.setuptools-git-versioning]
+enabled = true
+dev_template = "{tag}"
+dirty_template = "{tag}"
+tag_filter = "v?\\d+(\\.\\d+)*.*"
+
+[project]
+name = "backend"
+dynamic = ["version"]
+requires-python = ">= 3.10"
+description = "Kotaemon Backend"
+dependencies = []
+authors = [
+    { name = "@trducng", email = "john@cinnamon.is" },
+    { name = "@lone17", email = "ian@cinnamon.is" },
+    { name = "@taprosoft", email = "tadashi@cinnamon.is" },
+    { name = "@cin-albert", email = "albert@cinnamon.is" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
