@@ -5,6 +5,10 @@ import yaml
 from pydantic import BaseModel, Field
 from typing_extensions import Self
 
+# This import is important for the yaml to access to
+# the container
+from .container import *  # noqa
+
 logger = logging.getLogger(__name__)
 
 Primitive: TypeAlias = str | int | bool | float
