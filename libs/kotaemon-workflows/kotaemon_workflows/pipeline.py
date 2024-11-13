@@ -147,8 +147,11 @@ class Pipeline:
         file_paths = [file_paths] if isinstance(file_paths, str | Path) else file_paths
         streamed_docs = self.indexer.stream(file_paths=file_paths, reindex=reindex)
 
-        for doc in streamed_docs:
-            logger.info(f"Indexing: {doc}")
+        # Streaming results
+        docs = []
+        for docs in streamed_docs:
+            docs.append(docs)
+        return docs
 
     def retrieve(self, text: str, file_ids: list[str] | None = None):
         """Retrieve documents from the index."""

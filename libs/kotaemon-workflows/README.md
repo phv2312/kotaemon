@@ -3,40 +3,33 @@
 ## Setup
 
 ```bash
-pip install -e . "libs/backend"
+pip install -e . "libs/kotaemon-workflows"
 ```
 
 ## Usage
 
 ```python
-from backend.pipeline import Pipeline
-from kotaemon.schemas.crud import FileCRUD
+from kotaemon_workflows.pipeline import Pipeline
 
-pipeline = Pipeline.from_yaml("pipelines/file-collection.yaml")
-indexer = pipeline.get("indexer")
-retriver = pipeline.get("retriever")
+
+pipeline = Pipeline.from_yaml("libs/kotaemon-workflows/cfgs/default.yaml")
 
 # Indexing
-streamed_docs = indexer.stream(
+docs = pipeline.index(
     file_paths=["<your_file_path>"],
     reindex=True
 )
 
-for doc in streamed_docs:
+for doc in docs:
     print(doc)
 
 # Retrieving
-source = pipeline.get("source")
-filecrud = FileCRUD(source)
-
-doc_ids: list[str] = filecrud.list_docids()
-retrieved_docs = retriver.run(
-    text="<your_query>",
-    doc_ids=doc_ids
-)
+retrieved_docs = pipeline.retrieve(text="<your_query>",)
 
 print(f"Number of relevant nodes: {len(retrieved_docs)}")
 for doc in retrieved_docs:
     print(doc)
 
+# Save your workflow
+pipeline.save_yaml("default_rag.yaml")
 ```
