@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 include-package-data = true
 packages.find.exclude = ["tests*", "env*"]
-packages.find.include = ["backend*"]
+packages.find.include = ["kotaemon_workflows*"]
 
 [tool.setuptools-git-versioning]
 enabled = true
@@ -14,11 +14,14 @@ dirty_template = "{tag}"
 tag_filter = "v?\\d+(\\.\\d+)*.*"
 
 [project]
-name = "backend"
+name = "kotaemon-workflows"
 dynamic = ["version"]
 requires-python = ">= 3.10"
-description = "Kotaemon Backend"
-dependencies = []
+description = "Kotaemon: State-of-the-art RAG workflows"
+dependencies = [
+    # "kotaemon"
+    # "ktem"
+]
 authors = [
     { name = "@trducng", email = "john@cinnamon.is" },
     { name = "@lone17", email = "ian@cinnamon.is" },
