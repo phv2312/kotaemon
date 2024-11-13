@@ -72,6 +72,7 @@ class Indexer:
         )
 
         filestorage = Path(flowsettings.KH_FILESTORAGE_PATH) / f"index_{collection_idx}"
+        filestorage.mkdir(parents=True, exist_ok=True)
 
         obj.Source = source
         obj.Index = index
