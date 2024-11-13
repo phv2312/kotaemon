@@ -1,4 +1,4 @@
-# Kotaemon Backend
+# Kotaemon Workflows
 
 ## Setup
 
