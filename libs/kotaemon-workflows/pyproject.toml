@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 include-package-data = true
 packages.find.exclude = ["tests*", "env*"]
-packages.find.include = ["kotaemon_workflows*"]
+packages.find.include = ["kotaemon_workflows*", "app*"]
 
 [tool.setuptools-git-versioning]
 enabled = true
