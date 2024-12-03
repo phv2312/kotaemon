@@ -592,7 +592,54 @@ class IndexPipeline(BaseComponent):
     def run(
         self, file_path: str | Path, reindex: bool, **kwargs
     ) -> tuple[str, list[Document]]:
-        raise NotImplementedError
+        # check if the file is already indexed
+        if isinstance(file_path, Path):
+            file_path = file_path.resolve()
+
+        file_id = self.get_id_if_exists(file_path)
+
+        if isinstance(file_path, Path):
+            if file_id is not None:
+                if not reindex:
+                    raise ValueError(
+                        f"File {file_path.name} already indexed. Please rerun with "
+                        "reindex=True to force reindexing."
+                    )
+                else:
+                    # remove the existing records
+                    logger.debug(f" => Removing old {file_path.name}")
+                    self.delete_file(file_id)
+                    file_id = self.store_file(file_path)
+            else:
+                # add record to db
+                file_id = self.store_file(file_path)
+        else:
+            if file_id is not None:
+                raise ValueError(f"URL {file_path} already indexed.")
+            else:
+                # add record to db
+                file_id = self.store_url(file_path)
+
+        # extract the file
+        if isinstance(file_path, Path):
+            extra_info = default_file_metadata_func(str(file_path))
+            file_name = file_path.name
+        else:
+            extra_info = {"file_name": file_path}
+            file_name = file_path
+
+        extra_info["file_id"] = file_id
+        extra_info["collection_name"] = self.collection_name
+
+        logger.debug(f" => Converting {file_name} to text")
+        docs = self.loader.load_data(file_path, extra_info=extra_info)
+        logger.debug(f" => Converted {file_name} to text")
+        self.handle_docs(docs, file_id, file_name)
+
+        self.finish(file_id, file_path)
+
+        logger.debug(f" => Finished indexing {file_name}")
+        return file_id, docs
 
     def stream(
         self, file_path: str | Path, reindex: bool, **kwargs
@@ -760,9 +807,41 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
         return pipeline
 
     def run(
-        self, file_paths: str | Path | list[str | Path], *args, **kwargs
-    ) -> tuple[list[str | None], list[str | None]]:
-        raise NotImplementedError
+        self,
+        file_paths: str | Path | list[str | Path],
+        reindex: bool = False,
+        *args,
+        **kwargs,
+    ) -> tuple[list[str | None], list[str | None], list[Document]]:
+        """Return a list of indexed file ids, and a list of errors"""
+        if not isinstance(file_paths, list):
+            file_paths = [file_paths]
+
+        file_ids: list[str | None] = []
+        errors: list[str | None] = []
+        all_docs = []
+
+        n_files = len(file_paths)
+        for idx, file_path in enumerate(file_paths):
+            if self.is_url(file_path):
+                file_name = file_path
+            else:
+                file_path = Path(file_path)
+                file_name = file_path.name
+
+            logger.debug(f"Indexing [{idx + 1}/{n_files}]: {file_name}")
+            try:
+                pipeline = self.route(file_path)
+                file_id, docs = pipeline.run(file_path, reindex=reindex, **kwargs)
+                all_docs.extend(docs)
+                file_ids.append(file_id)
+                errors.append(None)
+            except Exception as e:
+                logger.exception(e)
+                file_ids.append(None)
+                errors.append(str(e))
+
+        return file_ids, errors, all_docs
 
     def stream(
         self, file_paths: str | Path | list[str | Path], reindex: bool = False, **kwargs
