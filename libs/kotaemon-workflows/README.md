@@ -8,14 +8,16 @@ pip install -e . "libs/kotaemon-workflows"
 
 ## Usage
 
+### As-SDK
+
 ```python
-from kotaemon_workflows.pipeline import Pipeline
+from kotaemon_workflows.workflows.simple_workflow import SimpleWorkflow
 
 
-pipeline = Pipeline.from_yaml("libs/kotaemon-workflows/cfgs/default.yaml")
+workflow = SimpleWorkflow("libs/kotaemon-workflows/cfgs/default.yaml")
 
 # Indexing
-docs = pipeline.index(
+ids, errors, docs = workflow.index(
     file_paths=["<your_file_path>"],
     reindex=True
 )
@@ -23,13 +25,19 @@ docs = pipeline.index(
 for doc in docs:
     print(doc)
 
-# Retrieving
-retrieved_docs = pipeline.retrieve(text="<your_query>",)
+# Retrieval
+retrieved_docs = workflow.retrieve(text="<your_query>")
 
 print(f"Number of relevant nodes: {len(retrieved_docs)}")
 for doc in retrieved_docs:
     print(doc)
 
 # Save your workflow
-pipeline.save_yaml("default_rag.yaml")
+workflow.save_yaml("default_rag.yaml")
+```
+
+### As-API
+
+```sh
+fastapi run libs/kotaemon-workflows/app/main.py
 ```

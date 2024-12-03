@@ -6,6 +6,9 @@ class IWorkflow(Protocol):
     def from_yaml(self, cfg_path: str | Path):
         ...
 
+    def save_yaml(self, path: str) -> None:
+        ...
+
     def index(self, file_paths: str | list[str], reindex: bool = True):
         ...
 
