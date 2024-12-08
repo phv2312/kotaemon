@@ -1,50 +1,81 @@
+from concurrent.futures import Executor
 from pathlib import Path
+import shutil
+from tempfile import TemporaryDirectory
 
-from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi import (
+    APIRouter, 
+    Depends, 
+    File, 
+    HTTPException, 
+    UploadFile, 
+    status
+)
 from kotaemon_workflows.workflows.interface import IWorkflow
 
-from app.api.v1.deps import get_workflow
-from app.utils import save_upload_file_tmp
+from ..deps import get_executor, get_workflow
+from ..models import IndexedResponse, IndexedStatus
 
 router = APIRouter()
 
 
-@router.post("/index_files")
-def index_files(
+def index_single(
+    filepath: Path,
+    workflow: IWorkflow,
+) -> IndexedResponse:
+    indexed_ids, errors, _ = workflow.index([filepath])
+    if len(indexed_ids) != 1:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Indexing for {filepath.name} returned unexpected tuple"
+        )
+    
+    if len(errors) > 0 and errors[0] is not None:
+        # error
+        return IndexedResponse(
+            file=filepath.name,
+            file_id=indexed_ids[0],
+            status=IndexedStatus.FAILED,
+            message=str(errors[0])
+        )
+         
+    # success
+    return IndexedResponse(
+        file=filepath.name,
+        file_id=indexed_ids[0],
+        status=IndexedStatus.SUCCESS,
+    )
+
+
+@router.post(
+    "/index", 
+    response_model=list[IndexedResponse]
+)
+async def indexing(
     files: list[UploadFile] = File(...),
     workflow: IWorkflow = Depends(get_workflow),
-):
-    tmp_files = []
-    messages = []
-    for file in files:
-        try:
-            tmp_file = save_upload_file_tmp(file)
-            tmp_files.append(tmp_file)
-            try:
-                file_ids, errors, docs = workflow.index([tmp_file])
-                if errors[0] is not None:
-                    messages.append(
-                        {
-                            "file": file.filename,
-                            "file_ids": file_ids,
-                            "status": "failed",
-                            "message": str(errors[0]),
-                        }
-                    )
-                else:
-                    messages.append(
-                        {
-                            "file": file.filename,
-                            "file_ids": file_ids,
-                            "status": "success",
-                        }
-                    )
-            except Exception as e:
-                errors.append(f"Error processing file {file.filename}: {str(e)}")
-        except Exception as e:
-            errors.append(f"Error saving temporary file {file.filename}: {str(e)}")
+    executor: Executor = Depends(get_executor),
+) -> list[IndexedResponse]:
+    
+    with TemporaryDirectory() as temp_dir:
+        futures = []
+        for file in files:
+            temp_file = Path(temp_dir) / file.filename
+            
+            with temp_file.open("wb") as file_content:
+                shutil.copyfileobj(file.file, file_content)
 
-    for tmp_file in tmp_files:
-        Path(tmp_file).unlink()
+            futures.append(
+                executor.submit(
+                    index_single,
+                    temp_file, 
+                    workflow
+                )
+            )
+        
+        responses: list[IndexedResponse] = [
+            future.result() 
+            for future in futures
+        ]
 
-    return messages
+    return responses
