@@ -54,6 +54,6 @@ class SimpleWorkflow:
         """Retrieve documents from the index."""
         if file_ids is None:
             filecrud = FileCRUD(self.source)
-        file_ids = filecrud.list_docids()
+            file_ids = filecrud.list_docids()
         retrieved_docs = self.retriever.run(text=text, doc_ids=file_ids)
         return retrieved_docs
