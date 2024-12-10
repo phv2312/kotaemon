@@ -11,7 +11,7 @@ from fastapi import (
     UploadFile, 
     status
 )
-from kotaemon_workflows.workflows.interface import IWorkflow
+from libs.workflows.workflows.interface import IWorkflow
 
 from ..deps import get_executor, get_workflow
 from ..models import IndexedResponse, IndexedStatus

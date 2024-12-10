@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends
 from kotaemon.base.schema import RetrievedDocument
-from kotaemon_workflows.workflows.interface import IWorkflow
+from libs.workflows.workflows.interface import IWorkflow
 
-from app.api.v1.deps import get_workflow
+from serves.api.v1.deps import get_workflow
 from ..models import RetrievedResponse, RetrievedRequest
 
 
