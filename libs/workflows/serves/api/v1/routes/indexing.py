@@ -4,7 +4,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
-from workflows.workflows.interface import IWorkflow
+from workflows.interface import IWorkflow
 
 from ..deps import get_executor, get_workflow
 from ..models import IndexedResponse, IndexedStatus
