@@ -3,12 +3,17 @@ from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+class IndexingSettings(BaseSettings):
+    model_config = SettingsConfigDict(case_sensitive=False)
+    batch_size: int = 3
+
+
 class WorkerSettings(BaseSettings):
     model_config = SettingsConfigDict(case_sensitive=False)
     num_thread_worker: int = 3
 
 
-class AppSettings(WorkerSettings, BaseSettings):
+class AppSettings(IndexingSettings, WorkerSettings, BaseSettings):
     model_config = SettingsConfigDict(case_sensitive=False)
 
     title: str = "Kotaemon API"
@@ -35,4 +40,3 @@ def get_settings() -> AppSettings:
 
 
 settings = get_settings()
-print(settings)

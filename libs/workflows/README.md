@@ -3,7 +3,7 @@
 ## Setup
 
 ```bash
-pip install -e . "libs/kotaemon-workflows"
+pip install -e . "libs/workflows"
 ```
 
 ## Usage
@@ -38,6 +38,8 @@ workflow.save_yaml("default_rag.yaml")
 
 ### As-API
 
+We're serving **Indexing** and **Retrieval** with FastAPI. To start, type the command:
+
 ```sh
-fastapi run libs/kotaemon-workflows/app/main.py
+uvicorn libs.workflows.serves.api.main:app
 ```
