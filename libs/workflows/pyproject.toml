@@ -18,6 +18,11 @@ name = "kotaemon-workflows"
 dynamic = ["version"]
 requires-python = ">= 3.10"
 description = "Kotaemon: State-of-the-art RAG workflows"
+dependencies = [
+    "fastapi>=0.112.0,<1.0.0",
+    "pydantic>=2.9.0,<3.0.0",
+    "pydantic-settings>=2.5.0,<3.0.0",
+]
 
 authors = [
     { name = "@trducng", email = "john@cinnamon.is" },
