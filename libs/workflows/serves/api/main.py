@@ -4,7 +4,6 @@ from starlette.middleware.cors import CORSMiddleware
 from .settings import settings
 from .v1.main import api_router as api_router_v1  # noqa: E402
 
-
 app = FastAPI(
     title=settings.title,
     version=settings.version,

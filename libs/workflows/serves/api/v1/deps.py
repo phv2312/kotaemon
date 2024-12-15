@@ -1,8 +1,9 @@
 from concurrent.futures import Executor, ThreadPoolExecutor
 from functools import lru_cache
 
-from workflows.interface import IWorkflow
 from workflows.impl.simple import SimpleWorkflow
+from workflows.interface import IWorkflow
+
 from ..settings import settings
 
 

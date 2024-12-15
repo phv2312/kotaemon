@@ -11,10 +11,10 @@ pip install -e . "libs/kotaemon-workflows"
 ### As-SDK
 
 ```python
-from kotaemon_workflows.workflows.simple_workflow import SimpleWorkflow
+from workflows.impl.simple import SimpleWorkflow
 
 
-workflow = SimpleWorkflow("libs/kotaemon-workflows/cfgs/default.yaml")
+workflow = SimpleWorkflow("libs/workflows/workflows/cfgs/default.yaml")
 
 # Indexing
 ids, errors, docs = workflow.index(

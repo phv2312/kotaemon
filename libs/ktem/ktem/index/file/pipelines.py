@@ -593,11 +593,9 @@ class IndexPipeline(BaseComponent):
         if ds_ids:
             self.DS.delete(ds_ids)
 
-    def run(
-        self, *args: Any, **kwargs: Any
-    ) -> tuple[str, list[Document]]:    
+    def run(self, *args: Any, **kwargs: Any) -> tuple[str, list[Document]]:
         raise NotImplementedError
-        
+
     def stream(
         self, file_path: str | Path, reindex: bool, **kwargs
     ) -> Generator[Document, None, tuple[str, list[Document]]]:
@@ -780,16 +778,14 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
         **kwargs,
     ) -> tuple[list[str | None], list[str | None], list[Document]]:
         try:
-            streaming = self.stream(
-                file_paths, 
-                reindex,
-                *args, **kwargs
-            )
+            streaming = self.stream(file_paths, reindex, *args, **kwargs)
             while True:
                 value = next(streaming)
                 logger.info("Yielded: %s" % value)
         except StopIteration as exc:
-            indexed_result: tuple[list[str | None], list[str | None], list[Document]] = exc.value
+            indexed_result: tuple[
+                list[str | None], list[str | None], list[Document]
+            ] = exc.value
             return indexed_result
         except Exception as general_exc:
             raise RuntimeError("Indexing does not run properly") from general_exc

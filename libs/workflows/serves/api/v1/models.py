@@ -1,12 +1,12 @@
 from enum import Enum
-from typing import Any
+
 from pydantic import BaseModel
 
 
 class IndexedStatus(str, Enum):
     SUCCESS = "Success"
     FAILED = "Failed"
-    
+
 
 class IndexedResponse(BaseModel):
     file: str
@@ -18,9 +18,9 @@ class IndexedResponse(BaseModel):
 class RetrievedRequest(BaseModel):
     message: str
     file_ids: list[str] | None = None
-    
 
-class RetrievedMetadata(BaseModel):    
+
+class RetrievedMetadata(BaseModel):
     file_name: str
     file_id: str
     collection_name: str
@@ -29,6 +29,5 @@ class RetrievedMetadata(BaseModel):
 
 class RetrievedResponse(BaseModel):
     score: float
-    text: str 
+    text: str
     metadata: RetrievedMetadata
-    
