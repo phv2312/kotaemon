@@ -4,30 +4,17 @@ collection_private: &collection_private false
 user_id: &user_id "1"
 
 embedding_model: &embedding_model "azure"
-
-retriever_settings: &retriever_settings
-  use_reranking: false
-  prioritize_table: false
-  num_retrieval: 5
-  mmr: false
-  retrieval_mode: "hybrid"
+llm_model: &llm_model "azure"
 
 indexer_settings: &indexer_settings
   embedding: *embedding_model
+  llm: *llm_model
+
+retriever_settings: &retriever_settings
+  embedding: *embedding_model
+  llm: *llm_model
 
 components:
-  - name: document_store
-    type: "lancedb"
-    container: "DocumentStore"
-    params:
-      collection_name: *collection_name
-
-  - name: vector_store
-    type: "chroma"
-    container: "VectorStore"
-    params:
-      collection_name: *collection_name
-
   - name: source
     type: "Source"
     container: "FileSchema"
@@ -41,8 +28,20 @@ components:
     params:
       collection_idx: *collection_idx
 
+  - name: vector_store
+    type: "chroma"
+    container: "VectorStore"
+    params:
+      collection_name: *collection_name
+
+  - name: document_store
+    type: "lancedb"
+    container: "DocumentStore"
+    params:
+      collection_name: *collection_name
+
   - name: indexer
-    type: "default"
+    type: "nano_graphrag"
     container: "Indexer"
     params:
       source: source
@@ -55,14 +54,9 @@ components:
       private: *collection_private
 
   - name: retriever
-    type: "default"
+    type: "nano_graphrag"
     container: "Retriever"
     params:
-      source: source
       index: index
       vectorstore: vector_store
-      documentstore: document_store
-      user_settings: *retriever_settings
       index_settings: *indexer_settings
-      collection_idx: *collection_idx
-      user_id: *user_id

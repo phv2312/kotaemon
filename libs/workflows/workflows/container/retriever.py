@@ -4,7 +4,7 @@ from typing import Any
 
 # TODO: change to ktem
 from ktem.index.file.base import BaseFileIndexRetriever
-from ktem.index.file.graph.pipelines import GraphRAGRetrieverPipeline
+from ktem.index.file.graph.nano_graphrag.pipelines import NanoGraphRAGRetrieverPipeline
 from ktem.index.file.pipelines import DocumentRetrievalPipeline
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -65,45 +65,45 @@ class UserFileIndexerSettings(BaseModel):
 class Retriever:
     DEFAULT_SELECTED: list[Any] = ["all", [], 1]
 
-    @staticmethod
-    def graphrag(
-        # source: Source,
-        # index: Index,
-        # vectorstore: BaseVectorStore,
-        # documentstore: BaseDocumentStore,
-        # user_settings: UserGraphRAGRetrieverSettings | dict[str | Any],
-        collection_idx: int = 1,
-        user_id: int = 1,
-        selected: list[Any] = DEFAULT_SELECTED,
-    ) -> BaseFileIndexRetriever:
-        # match user_settings:
-        #     case dict():
-        #         user_settings = (
-        # UserGraphRAGRetrieverSettings.model_validate(user_settings)
-        # )
+    # @staticmethod
+    # def graphrag(
+    #     # source: Source,
+    #     # index: Index,
+    #     # vectorstore: BaseVectorStore,
+    #     # documentstore: BaseDocumentStore,
+    #     # user_settings: UserGraphRAGRetrieverSettings | dict[str | Any],
+    #     collection_idx: int = 1,
+    #     user_id: int = 1,
+    #     selected: list[Any] = DEFAULT_SELECTED,
+    # ) -> BaseFileIndexRetriever:
+    #     # match user_settings:
+    #     #     case dict():
+    #     #         user_settings = (
+    #     # UserGraphRAGRetrieverSettings.model_validate(user_settings)
+    #     # )
 
-        # index_settings: dict[str, Any] = {}
+    #     # index_settings: dict[str, Any] = {}
 
-        return GraphRAGRetrieverPipeline(file_ids=selected[1], Index=Index)
+    #     return GraphRAGRetrieverPipeline(file_ids=selected[1], Index=Index)
 
-        # obj = GraphRAGRetrieverPipeline.get_pipeline(
-        #     user_settings.model_dump(),
-        #     index_settings,
-        #     selected
-        # )
+    #     # obj = GraphRAGRetrieverPipeline.get_pipeline(
+    #     #     user_settings.model_dump(),
+    #     #     index_settings,
+    #     #     selected
+    #     # )
 
-        # filestorage = (
-        #     Path(flowsettings.KH_FILESTORAGE_PATH) / f"index_{collection_idx}"
-        # )
+    #     # filestorage = (
+    #     #     Path(flowsettings.KH_FILESTORAGE_PATH) / f"index_{collection_idx}"
+    #     # )
 
-        # obj.Source = source
-        # obj.Index = index
-        # obj.VS = vectorstore
-        # obj.DS = documentstore
-        # obj.FSPath = filestorage
-        # obj.user_id = user_id
+    #     # obj.Source = source
+    #     # obj.Index = index
+    #     # obj.VS = vectorstore
+    #     # obj.DS = documentstore
+    #     # obj.FSPath = filestorage
+    #     # obj.user_id = user_id
 
-        # return obj
+    #     # return obj
 
     @staticmethod
     def default(
@@ -138,5 +138,29 @@ class Retriever:
         obj.DS = documentstore
         obj.FSPath = filestorage
         obj.user_id = user_id
+
+        return obj
+
+    @staticmethod
+    def nano_graphrag(
+        index: Index,
+        vectorstore: BaseVectorStore,
+        user_settings: UserFileRetrieverSettings | dict[str, Any] = {},
+        index_settings: UserFileIndexerSettings | dict[str, Any] = {},
+        selected: list[Any] = DEFAULT_SELECTED,
+    ) -> BaseFileIndexRetriever:
+        match user_settings:
+            case dict():
+                user_settings = UserFileRetrieverSettings.model_validate(user_settings)
+
+        match index_settings:
+            case dict():
+                index_settings = UserFileIndexerSettings.model_validate(index_settings)
+
+        obj = NanoGraphRAGRetrieverPipeline.get_pipeline(
+            user_settings.model_dump(), index_settings.model_dump(), selected
+        )
+        obj.Index = index
+        obj.VS = vectorstore
 
         return obj

@@ -29,9 +29,10 @@ class SimpleWorkflow:
 
     def __init__(
         self,
-        config_path: Path = DEFAULT_CONFIG_PATH,
+        config_path: str | Path = DEFAULT_CONFIG_PATH,
         config: SimpleWorkflowConfig | None = None,
     ):
+        config_path = Path(config_path)
         assert config_path.exists(), f"Config {config_path} does not exist"
         self.components = self.from_yaml(str(config_path))
         self.config = config or SimpleWorkflowConfig()
