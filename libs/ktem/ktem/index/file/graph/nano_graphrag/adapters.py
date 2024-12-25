@@ -1,5 +1,5 @@
 from dataclasses import field
-from typing import Callable
+from typing import Callable, Type
 
 import numpy as np
 from nano_graphrag._utils import EmbeddingFunc, compute_args_hash
@@ -64,7 +64,23 @@ def wrap_embedding_func(model: BaseEmbeddings) -> Callable:
     return embedding_func
 
 
-def wrap_vector_store_cls(default_vector_store: BaseVectorStore) -> type:
+def wrap_vector_store_cls(
+    default_vector_store: BaseVectorStore,
+) -> Type[BaseVectorStorage]:
+    """
+    Create a dynamically generated class that adapts Kotaemon's vectorstore instance
+    to the NanoGraphRAG `BaseVectorStorage` interface
+    Ref: https://github.com/gusye1234/nano-graphrag?tab=readme-ov-file#advances
+
+    Args:
+      default_vector_store (BaseVectorStore): Kotaemon vectorstore instance.
+
+    Returns:
+      A dynamically created class `VectorStoreAdapter` that extends `BaseVectorStorage`.
+      This class acts as an adapter for a given `default_vector_store` instance,
+      providing methods for querying and upserting data with embeddings.
+    """
+
     class VectorStoreAdapter(BaseVectorStorage):
         embedding_func: EmbeddingFunc
         meta_fields: set = field(default_factory=set)
