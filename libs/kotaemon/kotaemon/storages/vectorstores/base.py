@@ -6,7 +6,10 @@ from typing import Any, Optional
 from llama_index.core.schema import NodeRelationship, RelatedNodeInfo
 from llama_index.core.vector_stores.types import BasePydanticVectorStore
 from llama_index.core.vector_stores.types import VectorStore as LIVectorStore
-from llama_index.core.vector_stores.types import VectorStoreQuery
+from llama_index.core.vector_stores.types import (
+    VectorStoreQuery,
+    VectorStoreQueryResult,
+)
 
 from kotaemon.base import DocumentWithEmbedding
 
@@ -53,7 +56,7 @@ class BaseVectorStore(ABC):
         top_k: int = 1,
         ids: Optional[list[str]] = None,
         **kwargs,
-    ) -> tuple[list[list[float]], list[float], list[str]]:
+    ) -> tuple[list[list[float]], list[float], list[str], list[dict[str, Any]]]:
         """Return the top k most similar vector embeddings
 
         Args:
@@ -144,7 +147,7 @@ class LlamaIndexVectorStore(BaseVectorStore):
         top_k: int = 1,
         ids: Optional[list[str]] = None,
         **kwargs,
-    ) -> tuple[list[list[float]], list[float], list[str]]:
+    ) -> tuple[list[list[float]], list[float], list[str], list[dict[str, Any]]]:
         """Return the top k most similar vector embeddings
 
         Args:
@@ -166,7 +169,7 @@ class LlamaIndexVectorStore(BaseVectorStore):
             else:
                 vs_kwargs[kwkey] = kwvalue
 
-        output = self._client.query(
+        output: VectorStoreQueryResult = self._client.query(
             query=VectorStoreQuery(
                 query_embedding=embedding,
                 similarity_top_k=top_k,
@@ -177,10 +180,12 @@ class LlamaIndexVectorStore(BaseVectorStore):
         )
 
         embeddings = []
+        metadatas = []
         if output.nodes:
             for node in output.nodes:
                 embeddings.append(node.embedding)
+                metadatas.append(node.metadata)
         similarities = output.similarities if output.similarities else []
         out_ids = output.ids if output.ids else []
 
-        return embeddings, similarities, out_ids
+        return embeddings, similarities, out_ids, metadatas

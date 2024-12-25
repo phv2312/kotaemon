@@ -167,7 +167,7 @@ class VectorRetrieval(BaseRetrieval):
 
         if self.retrieval_mode == "vector":
             emb = self.embedding(text)[0].embedding
-            _, scores, ids = self.vector_store.query(
+            _, scores, ids, _ = self.vector_store.query(
                 embedding=emb, top_k=top_k_first_round, **kwargs
             )
             docs = self.doc_store.get(ids)
@@ -192,7 +192,7 @@ class VectorRetrieval(BaseRetrieval):
                 nonlocal vs_ids
 
                 assert self.doc_store is not None
-                _, vs_scores, vs_ids = self.vector_store.query(
+                _, vs_scores, vs_ids, _ = self.vector_store.query(
                     embedding=emb, top_k=top_k_first_round, **kwargs
                 )
                 if vs_ids:
