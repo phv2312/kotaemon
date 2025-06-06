@@ -104,8 +104,17 @@ class LCChatMixin:
                 additional_kwargs={"tool_calls": tool_calls},
             )
         else:
-            pred = self._obj.generate(messages=[input_], **kwargs)
-            output = self.prepare_response(pred)
+            if "response_format" in kwargs:
+                logger.warning(
+                    "You are using response_format in langchain based chat model."
+                    "The output will be in your specified format, not `LLMInterface`"
+                )
+                response_format = kwargs.pop("response_format")
+                structured_llm = self._obj.with_structured_output(response_format)
+                output = structured_llm.invoke(input_, **kwargs)
+            else:
+                pred = self._obj.generate(messages=[input_], **kwargs)
+                output = self.prepare_response(pred)
 
         return output
 
