@@ -85,7 +85,7 @@ class MilvusVectorStore(LlamaIndexVectorStore):
         top_k: int = 1,
         ids: Optional[list[str]] = None,
         **kwargs,
-    ) -> tuple[list[list[float]], list[float], list[str]]:
+    ) -> tuple[list[list[float]], list[float], list[str], list[dict[str, Any]]]:
         self._lazy_init(len(embedding))
 
         return super().query(embedding=embedding, top_k=top_k, ids=ids, **kwargs)

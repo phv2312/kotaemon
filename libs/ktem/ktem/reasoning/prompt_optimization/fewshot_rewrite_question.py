@@ -78,7 +78,7 @@ class FewshotRewriteQuestionPipeline(RewriteQuestionPipeline):
 
     def run(self, question: str) -> Document:  # type: ignore
         emb = self.embedding(question)[0].embedding
-        _, _, ids = self.vector_store.query(embedding=emb, top_k=self.k)
+        _, _, ids, _ = self.vector_store.query(embedding=emb, top_k=self.k)
         examples = self.doc_store.get(ids)
         messages = [SystemMessage(content="You are a helpful assistant")]
         for example in examples:

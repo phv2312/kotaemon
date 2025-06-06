@@ -1,8 +1,8 @@
 from typing import Any
 
 from ktem.index.file import FileIndex
+from ktem.index.file.base import BaseFileIndexIndexing, BaseFileIndexRetriever
 
-from ..base import BaseFileIndexIndexing, BaseFileIndexRetriever
 from .pipelines import GraphRAGIndexingPipeline, GraphRAGRetrieverPipeline
 
 

@@ -4,22 +4,24 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import Generator
+from typing import Generator, Optional
 
-import numpy as np
 import pandas as pd
 from ktem.db.models import engine
 from ktem.embeddings.manager import embedding_models_manager as embeddings
+from ktem.index.file.graph.pipelines import GraphRAGIndexingPipeline
+from ktem.index.file.graph.visualize import create_knowledge_graph, visualize_graph
+from ktem.index.file.pipelines import DocumentRetrievalPipeline
 from ktem.llms.manager import llms
 from sqlalchemy.orm import Session
 from theflow.settings import settings
 
 from kotaemon.base import Document, Param, RetrievedDocument
-from kotaemon.base.schema import AIMessage, HumanMessage, SystemMessage
+from kotaemon.embeddings import BaseEmbeddings
+from kotaemon.llms import ChatLLM
+from kotaemon.storages import BaseVectorStore
 
-from ..pipelines import BaseFileIndexRetriever
-from .pipelines import GraphRAGIndexingPipeline
-from .visualize import create_knowledge_graph, visualize_graph
+from .adapters import wrap_embedding_func, wrap_llm_func, wrap_vector_store_cls
 
 try:
     from nano_graphrag import GraphRAG, QueryParam
@@ -28,8 +30,6 @@ try:
         _find_most_related_edges_from_entities,
         _find_most_related_text_unit_from_entities,
     )
-    from nano_graphrag._utils import EmbeddingFunc, compute_args_hash
-
 except ImportError:
     print(
         (
@@ -40,82 +40,40 @@ except ImportError:
     )
 
 
-logging.getLogger("nano-graphrag").setLevel(logging.INFO)
-
-
+logger = logging.getLogger("__name__")
 filestorage_path = Path(settings.KH_FILESTORAGE_PATH) / "nano_graphrag"
 filestorage_path.mkdir(parents=True, exist_ok=True)
 
 INDEX_BATCHSIZE = 4
 
 
-def get_llm_func(model):
-    async def llm_func(
-        prompt, system_prompt=None, history_messages=[], **kwargs
-    ) -> str:
-        input_messages = [SystemMessage(text=system_prompt)] if system_prompt else []
-
-        hashing_kv = kwargs.pop("hashing_kv", None)
-        if history_messages:
-            for msg in history_messages:
-                if msg.get("role") == "user":
-                    input_messages.append(HumanMessage(text=msg["content"]))
-                else:
-                    input_messages.append(AIMessage(text=msg["content"]))
-
-        input_messages.append(HumanMessage(text=prompt))
-
-        if hashing_kv is not None:
-            args_hash = compute_args_hash("model", input_messages)
-            if_cache_return = await hashing_kv.get_by_id(args_hash)
-            if if_cache_return is not None:
-                return if_cache_return["return"]
-
-        output = model(input_messages).text
-
-        print("-" * 50)
-        print(output, "\n", "-" * 50)
-
-        if hashing_kv is not None:
-            await hashing_kv.upsert({args_hash: {"return": output, "model": "model"}})
-
-        return output
-
-    return llm_func
-
-
-def get_embedding_func(model):
-    async def embedding_func(texts: list[str]) -> np.ndarray:
-        outputs = model(texts)
-        embedding_outputs = np.array([doc.embedding for doc in outputs])
-
-        return embedding_outputs
-
-    return embedding_func
-
-
-def get_default_models_wrapper():
-    # setup model functions
-    default_embedding = embeddings.get_default()
-    default_embedding_dim = len(default_embedding(["Hi"])[0].embedding)
-    embedding_func = EmbeddingFunc(
-        embedding_dim=default_embedding_dim,
-        max_token_size=8192,
-        func=get_embedding_func(default_embedding),
-    )
-    print("GraphRAG embedding dim", default_embedding_dim)
-
-    default_llm = llms.get_default()
-    llm_func = get_llm_func(default_llm)
-
-    return llm_func, embedding_func, default_llm, default_embedding
-
-
 def prepare_graph_index_path(graph_id: str):
     root_path = Path(filestorage_path) / graph_id
     input_path = root_path / "input"
+    input_path.mkdir(parents=True, exist_ok=True)
 
     return root_path, input_path
+
+
+def build_graphrag(
+    input_path: str,
+    embedding: BaseEmbeddings,
+    llm: ChatLLM,
+    vector_store: BaseVectorStore,
+):
+    nano_graphrag_llm_func = wrap_llm_func(llm)
+    nano_graphrag_embedding_func = wrap_embedding_func(embedding)
+    nano_graphrag_vector_store_cls = wrap_vector_store_cls(vector_store)
+
+    graphrag = GraphRAG(
+        working_dir=input_path,
+        best_model_func=nano_graphrag_llm_func,
+        cheap_model_func=nano_graphrag_llm_func,
+        embedding_func=nano_graphrag_embedding_func,
+        vector_db_storage_cls=nano_graphrag_vector_store_cls,
+    )
+
+    return graphrag
 
 
 def list_of_list_to_df(data: list[list]) -> pd.DataFrame:
@@ -128,14 +86,14 @@ def clean_quote(input: str) -> str:
 
 
 async def nano_graph_rag_build_local_query_context(
-    graph_func,
+    graphrag,
     query,
     query_param,
 ):
-    knowledge_graph_inst = graph_func.chunk_entity_relation_graph
-    entities_vdb = graph_func.entities_vdb
-    community_reports = graph_func.community_reports
-    text_chunks_db = graph_func.text_chunks
+    knowledge_graph_inst = graphrag.chunk_entity_relation_graph
+    entities_vdb = graphrag.entities_vdb
+    community_reports = graphrag.community_reports
+    text_chunks_db = graphrag.text_chunks
 
     results = await entities_vdb.query(query, top_k=query_param.top_k)
     if not len(results):
@@ -203,32 +161,30 @@ async def nano_graph_rag_build_local_query_context(
     return entities_df, relations_df, communities_df, sources_df
 
 
-def build_graphrag(working_dir, llm_func, embedding_func):
-    graphrag_func = GraphRAG(
-        working_dir=working_dir,
-        best_model_func=llm_func,
-        cheap_model_func=llm_func,
-        embedding_func=embedding_func,
-    )
-    return graphrag_func
-
-
 class NanoGraphRAGIndexingPipeline(GraphRAGIndexingPipeline):
     """GraphRAG specific indexing pipeline"""
 
+    embedding: BaseEmbeddings = Param(help="The embedding model")
+    llm: ChatLLM = Param(help="The LLM model")
+
+    @classmethod
+    def get_pipeline(cls, user_settings, index_settings) -> GraphRAGIndexingPipeline:
+        obj = cls(
+            embedding=embeddings[
+                index_settings.get("embedding", embeddings.get_default_name())
+            ],
+            llm=llms[index_settings.get("llm", llms.get_default_name())],
+        )
+        return obj
+
     def call_graphrag_index(self, graph_id: str, docs: list[Document]):
         _, input_path = prepare_graph_index_path(graph_id)
-        input_path.mkdir(parents=True, exist_ok=True)
 
-        (
-            llm_func,
-            embedding_func,
-            default_llm,
-            default_embedding,
-        ) = get_default_models_wrapper()
+        self.llm = llms.get_default()
+        self.embedding = embeddings.get_default()
         print(
-            f"Indexing GraphRAG with LLM {default_llm} "
-            f"and Embedding {default_embedding}..."
+            f"Indexing GraphRAG with LLM {self.llm} "
+            f"and Embedding {self.embedding}..."
         )
 
         all_docs = [
@@ -242,17 +198,19 @@ class NanoGraphRAGIndexingPipeline(GraphRAGIndexingPipeline):
             text="[GraphRAG] Creating index... This can take a long time.",
         )
 
-        # remove all .json files in the input_path directory (previous cache)
+        # Remove all .json files in the input_path directory (previous cache)
         json_files = glob.glob(f"{input_path}/*.json")
         for json_file in json_files:
             os.remove(json_file)
 
-        # indexing
-        graphrag_func = build_graphrag(
+        # Create GraphRAG instance
+        graphrag = build_graphrag(
             input_path,
-            llm_func=llm_func,
-            embedding_func=embedding_func,
+            self.embedding,
+            self.llm,
+            self.VS,
         )
+
         # output must be contain: Loaded graph from
         # ..input/graph_chunk_entity_relation.graphml with xxx nodes, xxx edges
         total_docs = len(all_docs)
@@ -263,7 +221,7 @@ class NanoGraphRAGIndexingPipeline(GraphRAGIndexingPipeline):
         )
         for doc_id in range(0, len(all_docs), INDEX_BATCHSIZE):
             cur_docs = all_docs[doc_id : doc_id + INDEX_BATCHSIZE]
-            graphrag_func.insert(cur_docs)
+            graphrag.insert(cur_docs)
             process_doc_count += len(cur_docs)
             yield Document(
                 channel="debug",
@@ -289,15 +247,55 @@ class NanoGraphRAGIndexingPipeline(GraphRAGIndexingPipeline):
 
         return file_ids, errors, all_docs
 
+    def run(
+        self,
+        file_paths: str | Path | list[str | Path],
+        reindex: bool = False,
+        *args,
+        **kwargs,
+    ) -> tuple[list[str | None], list[str | None], list[Document]]:
+        try:
+            streaming = self.stream(file_paths, reindex, *args, **kwargs)
+            while True:
+                value = next(streaming)
+                logger.info("Yielded: %s" % value)
+        except StopIteration as exc:
+            indexed_result: tuple[
+                list[str | None], list[str | None], list[Document]
+            ] = exc.value
+            return indexed_result
+        except Exception as general_exc:
+            raise RuntimeError("Indexing does not run properly") from general_exc
 
-class NanoGraphRAGRetrieverPipeline(BaseFileIndexRetriever):
+
+class NanoGraphRAGRetrieverPipeline(DocumentRetrievalPipeline):
     """GraphRAG specific retriever pipeline"""
 
     Index = Param(help="The SQLAlchemy Index table")
     file_ids: list[str] = []
+    embedding: BaseEmbeddings = Param(help="The embedding model")
+    llm: ChatLLM = Param(help="The LLM model")
 
-    def _build_graph_search(self):
-        file_id = self.file_ids[0]
+    @classmethod
+    def get_pipeline(cls, user_settings, index_settings, selected):
+        """Get retriever objects associated with the index
+
+        Args:
+            settings: the settings of the app
+            kwargs: other arguments
+        """
+        _, file_ids, _ = selected  # TODO: Workaround for the default file_ids
+        obj = cls(
+            file_ids=file_ids,
+            embedding=embeddings[
+                index_settings.get("embedding", embeddings.get_default_name())
+            ],
+            llm=llms[index_settings.get("llm", llms.get_default_name())],
+        )
+        return obj
+
+    def _build_graph_search(self, file_ids: list[str]):
+        file_id = file_ids[0]
 
         # retrieve the graph_id from the index
         with Session(engine) as session:
@@ -311,17 +309,18 @@ class NanoGraphRAGRetrieverPipeline(BaseFileIndexRetriever):
             assert graph_id, f"GraphRAG index not found for file_id: {file_id}"
 
         _, input_path = prepare_graph_index_path(graph_id)
-        input_path.mkdir(parents=True, exist_ok=True)
 
-        llm_func, embedding_func, _, _ = get_default_models_wrapper()
-        graphrag_func = build_graphrag(
+        self.llm = llms.get_default()
+        self.embedding = embeddings.get_default()
+        graphrag = build_graphrag(
             input_path,
-            llm_func=llm_func,
-            embedding_func=embedding_func,
+            self.embedding,
+            self.llm,
+            self.VS,
         )
         query_params = QueryParam(mode="local", only_need_context=True)
 
-        return graphrag_func, query_params
+        return graphrag, query_params
 
     def _to_document(self, header: str, context_text: str) -> RetrievedDocument:
         return RetrievedDocument(
@@ -377,13 +376,16 @@ class NanoGraphRAGRetrieverPipeline(BaseFileIndexRetriever):
     def run(
         self,
         text: str,
+        doc_ids: Optional[list[str]] = None,
     ) -> list[RetrievedDocument]:
-        if not self.file_ids:
+        doc_ids = doc_ids or self.file_ids
+        if not doc_ids:
+            logger.info(f"Skip retrieval because of no selected files: {self}")
             return []
 
-        graphrag_func, query_params = self._build_graph_search()
+        graphrag, query_params = self._build_graph_search(file_ids=doc_ids)
         entities, relationships, reports, sources = asyncio.run(
-            nano_graph_rag_build_local_query_context(graphrag_func, text, query_params)
+            nano_graph_rag_build_local_query_context(graphrag, text, query_params)
         )
 
         documents = self.format_context_records(

@@ -64,11 +64,11 @@ class TestChromaVectorStore:
 
         db.add(embeddings=embeddings, metadatas=metadatas, ids=ids)
 
-        _, sim, out_ids = db.query(embedding=[0.1, 0.2, 0.3], top_k=1)
+        _, sim, out_ids, _ = db.query(embedding=[0.1, 0.2, 0.3], top_k=1)
         assert sim[0] - 1.0 < 1e-6
         assert out_ids == ["a"]
 
-        _, _, out_ids = db.query(embedding=[0.42, 0.52, 0.53], top_k=1)
+        _, _, out_ids, _ = db.query(embedding=[0.42, 0.52, 0.53], top_k=1)
         assert out_ids == ["b"]
 
     def test_save_load_delete(self, tmp_path):
@@ -223,7 +223,7 @@ class TestMilvusVectorStore:
 
         db.add(embeddings=normalized_embeddings, metadatas=metadatas, ids=ids)
 
-        _, sim, out_ids = db.query(embedding=normalized_embeddings[0], top_k=1)
+        _, sim, out_ids, _ = db.query(embedding=normalized_embeddings[0], top_k=1)
         assert sim[0] - 1.0 < 1e-6
         assert out_ids == ["a"]
 
@@ -232,7 +232,7 @@ class TestMilvusVectorStore:
             normalized_embeddings[1][1] + 0.02,
             normalized_embeddings[1][2] + 0.02,
         ]
-        _, _, out_ids = db.query(embedding=query_embedding, top_k=1)
+        _, _, out_ids, _ = db.query(embedding=query_embedding, top_k=1)
         assert out_ids == ["b"]
 
     def test_save_load_delete(self, tmp_path):
@@ -326,11 +326,11 @@ class TestQdrantVectorStore:
 
         db.add(embeddings=embeddings, metadatas=metadatas, ids=ids)
 
-        _, sim, out_ids = db.query(embedding=[0.1, 0.2, 0.3], top_k=1)
+        _, sim, out_ids, _ = db.query(embedding=[0.1, 0.2, 0.3], top_k=1)
         assert sim[0] - 1.0 < 1e-6
         assert out_ids == ["0f0611b3-2d9c-4818-ab69-1f1c4cf66693"]
 
-        _, _, out_ids = db.query(embedding=[0.4, 0.5, 0.6], top_k=1)
+        _, _, out_ids, _ = db.query(embedding=[0.4, 0.5, 0.6], top_k=1)
         assert out_ids == ["90aba5d3-f4f8-47c6-bad9-5ea457442e07"]
 
     def test_save_load_delete(self, tmp_path):
